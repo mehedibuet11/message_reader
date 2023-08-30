@@ -17,7 +17,6 @@ public class Functions {
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 
         // Create an explicit intent for launching your app's MainActivity
-        // Create an explicit intent for launching your app's MainActivity
         Intent intent = new Intent(context, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK); // Clear the activity stack
 
