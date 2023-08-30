@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.widget.TextView;
@@ -16,7 +17,6 @@ import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 
 public class MainActivity extends AppCompatActivity {
-
     private static final int SMS_PERMISSION_CODE = 101;
     private static final int NOTIFICATION_PERMISSION_CODE = 102;
 
@@ -27,12 +27,19 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+
         // Check and request SMS permissions if needed
         if (checkSmsPermission()) {
             // SMSReceiver will display incoming messages as toasts.
             if (checkNotificationPermission()) {
-                ToastHelper.showCustomToast(this,"Your app is running",null);
-                Functions.createNotification(MainActivity.this,"Watching","Your app is running");
+                Intent serviceIntent = new Intent(this, MyBackgroundService.class);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(serviceIntent);
+                } else {
+                    startService(serviceIntent);
+                }
+                ToastHelper.showCustomToast(this, "Your app is running", null);
+                Functions.createNotification(MainActivity.this, "Watching", "Your app is running");
             } else {
                 requestNotificationPermission();
             }

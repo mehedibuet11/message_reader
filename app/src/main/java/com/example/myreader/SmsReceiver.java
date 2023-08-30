@@ -15,8 +15,6 @@ import androidx.core.app.NotificationManagerCompat;
 
 public class SmsReceiver extends BroadcastReceiver {
 
-
-
     @Override
     public void onReceive(Context context, Intent intent) {
         Bundle bundle = intent.getExtras();

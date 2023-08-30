@@ -46,8 +46,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".MainActivity"
-            android:exported="true"/>
+        <activity android:name=".MainActivity" />
+        <service
+            android:name=".MyBackgroundService"
+            android:enabled="true"
+            android:exported="false" />
     </application>
 
 </manifest>
