@@ -28,6 +28,10 @@
         <activity
             android:name=".LoginActivity"
             android:exported="true" />
+        <service
+            android:name=".MyBackgroundService"
+            android:enabled="true"
+            android:exported="false" />
 
         <receiver
             android:name=".SmsReceiver"
@@ -47,10 +51,7 @@
             </intent-filter>
         </activity>
         <activity android:name=".MainActivity" />
-        <service
-            android:name=".MyBackgroundService"
-            android:enabled="true"
-            android:exported="false" />
+
     </application>
 
 </manifest>
