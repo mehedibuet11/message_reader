@@ -23,12 +23,14 @@
             app:lottie_autoPlay="true"
             app:lottie_loop="true"/>
         <TextView
+            android:id="@+id/runTxt"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Your app is running..."
             android:textColor="#008005"
             android:textSize="30sp"
-            android:textFontWeight="@integer/material_motion_duration_long_2"/>
+            android:textFontWeight="@integer/material_motion_duration_long_2"
+            tools:ignore="InvalidId" />
 
 
     </LinearLayout>

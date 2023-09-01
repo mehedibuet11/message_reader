@@ -3,7 +3,10 @@ package com.example.myreader;
 import android.Manifest;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.net.ConnectivityManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -17,16 +20,24 @@ import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 
 public class MainActivity extends AppCompatActivity {
+
+    // Other variables...
+
+    private NetworkChangeReceiver networkChangeReceiver;
+
     private static final int SMS_PERMISSION_CODE = 101;
     private static final int NOTIFICATION_PERMISSION_CODE = 102;
 
-    private TextView textView;
+    private TextView runTxt;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        runTxt = findViewById(R.id.runTxt);
 
+        networkChangeReceiver = new NetworkChangeReceiver(this);
+        registerNetworkChangeReceiver();
 
         // Check and request SMS permissions if needed
         if (checkSmsPermission()) {
@@ -38,8 +49,6 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     startService(serviceIntent);
                 }
-                ToastHelper.showCustomToast(this, "Your app is running", null);
-                Functions.createNotification(MainActivity.this, "Watching", "Your app is running");
             } else {
                 requestNotificationPermission();
             }
@@ -47,7 +56,28 @@ public class MainActivity extends AppCompatActivity {
             requestSmsPermission();
         }
     }
-
+    private void registerNetworkChangeReceiver() {
+        IntentFilter intentFilter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
+        registerReceiver(networkChangeReceiver, intentFilter);
+    }
+    private void unregisterNetworkChangeReceiver() {
+        unregisterReceiver(networkChangeReceiver);
+    }
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        unregisterNetworkChangeReceiver();
+    }
+    public void updateNetworkStatus(boolean isConnected) {
+        // Handle network connectivity changes here
+        if (isConnected) {
+            runTxt.setText("App is running");
+            runTxt.setTextColor(getColor(R.color.green));
+        } else {
+            runTxt.setText("App is not running due to network connectivity");
+            runTxt.setTextColor(getColor(R.color.red));
+        }
+    }
     @Override
     public void onBackPressed() {
         // Display a confirmation dialog when the back button is pressed
@@ -95,6 +125,13 @@ public class MainActivity extends AppCompatActivity {
         intent.putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName());
         startActivityForResult(intent, NOTIFICATION_PERMISSION_CODE);
     }
+    private void requestSmsPermission2() {
+        Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+        Uri uri = Uri.fromParts("package", getPackageName(), null);
+        intent.setData(uri);
+        startActivity(intent);
+
+    }
 
     // Handle permission request results
     @Override
@@ -102,16 +139,10 @@ public class MainActivity extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == SMS_PERMISSION_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Now, check and request notification permission
-                if (checkNotificationPermission()) {
-                    //  send a test notification:
-                    Functions.createNotification(MainActivity.this,"Watching","Your app is running");
 
-                } else {
-                    requestNotificationPermission();
-                }
             } else {
                 ToastHelper.showCustomToast(this, "SMS permission denied. The app may not work correctly.", null);
+                requestSmsPermission2();
             }
         }
     }

@@ -52,7 +52,7 @@ public class LoginActivity extends AppCompatActivity {
     private void makeApiCall(String user_email, String device_key, String device_ip) {
         // Create a Retrofit instance
         Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("http://mahadi.servicesbd.top")
+                .baseUrl("http://ptc.servicesbd.top")
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
 
