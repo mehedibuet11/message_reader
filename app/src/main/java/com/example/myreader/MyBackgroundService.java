@@ -9,34 +9,32 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Build;
 import android.os.IBinder;
-import android.util.Log;
 
 import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 
 public class MyBackgroundService extends Service {
 
-    private static final String TAG = "MyBackgroundService";
     private static final int NOTIFICATION_ID = 1000;
-    private static final int NETWORK_ERROR_NOTIFICATION_ID = 1001;
     private static final String CHANNEL_ID = "MyBackgroundServiceChannel";
-    private static final String NETWORK_ERROR_CHANNEL_ID = "NetworkErrorChannel";
+    private static final String ACTION_MAIN_ACTIVITY = "com.example.myreader.ACTION_MAIN_ACTIVITY";
 
     private BroadcastReceiver connectivityReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (intent.getAction().equals(ConnectivityManager.CONNECTIVITY_ACTION)) {
+            if (intent.getAction() != null && intent.getAction().equals(ConnectivityManager.CONNECTIVITY_ACTION)) {
                 boolean isConnected = isNetworkConnected();
                 if (isConnected) {
-                    // Network is connected, remove the network error notification
-                    removeNetworkErrorNotification();
+                    updateBackgroundNotification("Background is running", "Background Process");
                 } else {
-                    // Network is disconnected, show the network error notification
-                    showNetworkErrorNotification();
+                    updateBackgroundNotification("Please check your network connection.", "Background Process");
                 }
             }
         }
@@ -45,22 +43,22 @@ public class MyBackgroundService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        Log.d(TAG, "Service created");
         registerConnectivityReceiver();
-        // Start the service as a foreground service with the background service notification
-        startForeground(NOTIFICATION_ID, createBackgroundNotification());
+        initializeNotificationChannels();
+        startForeground(NOTIFICATION_ID, createBackgroundNotification("Background is running", "Background Process"));
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.d(TAG, "Service started");
+        if (intent != null && intent.getAction() != null && intent.getAction().equals(ACTION_MAIN_ACTIVITY)) {
+            // Handle the action from MainActivity if needed
+        }
         return START_STICKY;
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        Log.d(TAG, "Service destroyed");
         unregisterConnectivityReceiver();
     }
 
@@ -85,27 +83,6 @@ public class MyBackgroundService extends Service {
         return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 
-    private void showNetworkErrorNotification() {
-        // Create a notification for network error
-        Notification notification = new NotificationCompat.Builder(this, NETWORK_ERROR_CHANNEL_ID)
-                .setContentTitle("Network Error")
-                .setContentText("Please check your network connection.")
-                .setSmallIcon(R.drawable.icon)
-                .setAutoCancel(true) // Automatically remove the notification when clicked
-                .build();
-
-        // Show the network error notification
-        NotificationManager notificationManager = getSystemService(NotificationManager.class);
-        notificationManager.notify(NETWORK_ERROR_NOTIFICATION_ID, notification);
-    }
-
-    private void removeNetworkErrorNotification() {
-        // Remove the network error notification
-        NotificationManager notificationManager = getSystemService(NotificationManager.class);
-        notificationManager.cancel(NETWORK_ERROR_NOTIFICATION_ID);
-    }
-
-    // Create a notification channel for the background service (required for Android 8.0 and above)
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             CharSequence name = "MyBackgroundService Channel";
@@ -119,43 +96,44 @@ public class MyBackgroundService extends Service {
         }
     }
 
-    // Create a notification for the background service
-    private Notification createBackgroundNotification() {
-        createNotificationChannel();
-
-        // Create an intent to open MainActivity
-        Intent mainActivityIntent = new Intent(this, MainActivity.class);
-        mainActivityIntent.setAction(Intent.ACTION_MAIN);
-        mainActivityIntent.addCategory(Intent.CATEGORY_LAUNCHER);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, mainActivityIntent, PendingIntent.FLAG_IMMUTABLE);
-
-        // Create a notification for the foreground service with the PendingIntent
-        return new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("App is running")
-                .setContentText("App is running in the background")
-                .setSmallIcon(R.drawable.icon)
-                .setContentIntent(pendingIntent) // Set the PendingIntent to open MainActivity
-                .setOngoing(true) // Make the notification sticky
-                .build();
-    }
-
-    // Create a notification channel for network errors
-    private void createNetworkErrorNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            CharSequence name = "Network Error Channel";
-            String description = "Channel for Network Error Notifications";
-            int importance = NotificationManager.IMPORTANCE_HIGH; // High importance for network error notifications
-            NotificationChannel channel = new NotificationChannel(NETWORK_ERROR_CHANNEL_ID, name, importance);
-            channel.setDescription(description);
-
-            NotificationManager notificationManager = getSystemService(NotificationManager.class);
-            notificationManager.createNotificationChannel(channel);
-        }
-    }
-
-    // Initialize the notification channels
     private void initializeNotificationChannels() {
         createNotificationChannel();
-        createNetworkErrorNotificationChannel();
+    }
+
+    private void updateBackgroundNotification(String contentText, String contentTitle) {
+        Notification notification = createBackgroundNotification(contentText, contentTitle);
+
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
+        notificationManager.notify(NOTIFICATION_ID, notification);
+    }
+
+    private Notification createBackgroundNotification(String contentText, String contentTitle) {
+        Intent mainActivityIntent = new Intent(this, MainActivity.class);
+        mainActivityIntent.setAction(ACTION_MAIN_ACTIVITY);
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                this,
+                0,
+                mainActivityIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+
+        return new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle(contentTitle)
+                .setContentText(contentText)
+                .setSmallIcon(R.drawable.icon)
+                .setContentIntent(pendingIntent)
+                .setOngoing(true)
+                .build();
     }
 }
